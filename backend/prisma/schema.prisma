@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LicensingStatus {
+  DRAFT
+  REQUESTED
+  NEGOTIATING
+  APPROVED
+  REJECTED
+}
+
+model Movie {
+  id        String   @id @default(uuid()) @db.Uuid
+  title     String
+  releaseAt DateTime?
+  scenes    Scene[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Scene {
+  id         String   @id @default(uuid()) @db.Uuid
+  movieId    String   @db.Uuid
+  name       String
+  orderIndex Int
+  startMs    Int
+  endMs      Int
+  movie      Movie    @relation(fields: [movieId], references: [id])
+  tracks     Track[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([movieId])
+}
+
+model Song {
+  id         String   @id @default(uuid()) @db.Uuid
+  title      String
+  artist     String
+  isrc       String?
+  durationMs Int?
+  tracks     Track[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Track {
+  id              String          @id @default(uuid()) @db.Uuid
+  sceneId         String          @db.Uuid
+  songId          String          @db.Uuid
+  startMs         Int
+  endMs           Int
+  licensingStatus LicensingStatus @default(DRAFT)
+  scene           Scene           @relation(fields: [sceneId], references: [id])
+  song            Song            @relation(fields: [songId], references: [id])
+  events          LicensingEvent[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([sceneId])
+  @@index([songId])
+  @@index([licensingStatus])
+}
+
+model LicensingEvent {
+  id         String          @id @default(uuid()) @db.Uuid
+  trackId    String          @db.Uuid
+  fromStatus LicensingStatus
+  toStatus   LicensingStatus
+  note       String?
+  actor      String?
+  track      Track           @relation(fields: [trackId], references: [id])
+  createdAt  DateTime        @default(now())
+
+  @@index([trackId])
+}
