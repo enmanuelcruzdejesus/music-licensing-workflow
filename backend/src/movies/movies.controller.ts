@@ -21,4 +21,12 @@ export class MoviesController {
   findOne(@Param("movieId", new ParseUUIDPipe({ version: "4" })) movieId: string) {
     return this.moviesService.findOne(movieId);
   }
+
+  @Get(":movieId/tracks")
+  findTracks(
+    @Param("movieId", new ParseUUIDPipe({ version: "4" })) movieId: string,
+    @Query() pagination: PaginationDto,
+  ) {
+    return this.moviesService.findTracks(movieId, pagination);
+  }
 }

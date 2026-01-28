@@ -33,4 +33,27 @@ export class MoviesService {
 
     return movie;
   }
+
+  async findTracks(movieId: string, pagination?: PaginationDto) {
+    const movie = await this.prisma.movie.findUnique({ where: { id: movieId } });
+
+    if (!movie) {
+      throw new NotFoundException("Movie not found");
+    }
+
+    return this.prisma.track.findMany({
+      where: {
+        scene: {
+          movieId,
+        },
+      },
+      skip: pagination?.offset,
+      take: pagination?.limit,
+      orderBy: [{ scene: { orderIndex: "asc" } }, { createdAt: "desc" }],
+      include: {
+        song: true,
+        scene: true,
+      },
+    });
+  }
 }
