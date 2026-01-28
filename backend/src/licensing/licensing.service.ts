@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { LicensingStatus } from "../common/enums/licensing-status.enum";
 import { PrismaService } from "../database/prisma.service";
+import { RealtimeService } from "../realtime/realtime.service";
 import { UpdateLicensingStatusDto } from "./dto/update-licensing-status.dto";
 
 @Injectable()
@@ -13,7 +14,10 @@ export class LicensingService {
     [LicensingStatus.REJECTED]: [],
   };
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly realtimeService: RealtimeService,
+  ) {}
 
   async updateStatus(trackId: string, payload: UpdateLicensingStatusDto) {
     const track = await this.prisma.track.findUnique({ where: { id: trackId } });
@@ -33,7 +37,7 @@ export class LicensingService {
       throw new BadRequestException("Invalid licensing status transition");
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.track.update({
         where: { id: trackId },
         data: { licensingStatus: toStatus },
@@ -51,5 +55,13 @@ export class LicensingService {
 
       return updated;
     });
+
+    await this.realtimeService.publish("licensing.status.updated", {
+      trackId,
+      fromStatus,
+      toStatus,
+    });
+
+    return updated;
   }
 }
