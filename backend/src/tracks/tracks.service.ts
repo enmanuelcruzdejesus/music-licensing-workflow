@@ -85,4 +85,17 @@ export class TracksService {
       },
     });
   }
+
+  async findLicensingEvents(trackId: string) {
+    const track = await this.prisma.track.findUnique({ where: { id: trackId } });
+
+    if (!track) {
+      throw new NotFoundException("Track not found");
+    }
+
+    return this.prisma.licensingEvent.findMany({
+      where: { trackId },
+      orderBy: { createdAt: "asc" },
+    });
+  }
 }
